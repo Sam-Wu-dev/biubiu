@@ -4,43 +4,30 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.PointF
 import android.os.Build
 import android.os.Bundle
-import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
-import android.widget.Toast
-import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.core.Preview
-import androidx.camera.core.CameraSelector
+import android.util.DisplayMetrics
 import android.util.Log
+import android.view.MotionEvent
+import android.view.WindowManager
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
-import com.example.cameraxapp.databinding.ActivityMainBinding
+import androidx.camera.core.Preview
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import com.example.cameraxapp.NetWork.Tcp
+import com.example.cameraxapp.databinding.ActivityMainBinding
 import java.io.ByteArrayOutputStream
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 
 class MainActivity : AppCompatActivity() {
-
-    private inner class GameAnalyzer :ImageAnalysis.Analyzer{
-
-        @SuppressLint("UnsafeOptInUsageError")
-        override fun analyze(image: ImageProxy) {
-            val converter = YuvToRgbConverter(applicationContext)
-            val bitmap = Bitmap.createBitmap(image.width,image.height,Bitmap.Config.ARGB_8888)
-            image.image?.let { converter.yuvToRgb(it,bitmap) }
-            image.close()
-            val outputStream = ByteArrayOutputStream()
-            bitmap.compress(Bitmap.CompressFormat.JPEG,80,outputStream)
-            //queue.add(outputStream.toByteArray())
-            tcp.sendFrame(outputStream.toByteArray())
-            count++
-            Log.d("tcp", "making frame $count")
-        }
-    }
 
     private lateinit var viewBinding: ActivityMainBinding
 
@@ -48,10 +35,18 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var tcp: Tcp
 
+    private var shootPoint = PointF(0F,0F)
+
+    private var deviceWidth = 0
+
+    private var deviceHeight = 0
+
     private var count = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        Log.d("test","on create")
+        getWindow().setFlags(
+            WindowManager.LayoutParams.FLAG_FULLSCREEN,
+            WindowManager.LayoutParams.FLAG_FULLSCREEN);
         super.onCreate(savedInstanceState)
         viewBinding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(viewBinding.root)
@@ -66,6 +61,28 @@ class MainActivity : AppCompatActivity() {
         } else {
             ActivityCompat.requestPermissions(
                 this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS)
+        }
+        val displaymetrics = DisplayMetrics()
+        windowManager.defaultDisplay.getMetrics(displaymetrics)
+        deviceHeight = displaymetrics.heightPixels
+        deviceWidth = displaymetrics.widthPixels
+        setListener()
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private fun setListener(){
+        viewBinding.viewFinder.setOnTouchListener { _, event ->
+            if (event.action == MotionEvent.ACTION_DOWN) {
+                shootPoint.x = event.x/deviceWidth
+                shootPoint.y = event.y/deviceHeight
+            }
+            false
+        }
+
+        viewBinding.viewFinder.setOnClickListener {
+            Thread{
+                tcp.sendShootPoint(shootPoint)
+            }.start()
         }
     }
 
@@ -105,6 +122,23 @@ class MainActivity : AppCompatActivity() {
             }
 
         }, ContextCompat.getMainExecutor(this))
+    }
+
+    private inner class GameAnalyzer :ImageAnalysis.Analyzer{
+
+        @SuppressLint("UnsafeOptInUsageError")
+        override fun analyze(image: ImageProxy) {
+            val converter = YuvToRgbConverter(applicationContext)
+            val bitmap = Bitmap.createBitmap(image.width,image.height,Bitmap.Config.ARGB_8888)
+            image.image?.let { converter.yuvToRgb(it,bitmap) }
+            image.close()
+            val outputStream = ByteArrayOutputStream()
+            bitmap.compress(Bitmap.CompressFormat.JPEG,80,outputStream)
+            //queue.add(outputStream.toByteArray())
+            tcp.sendFrame(outputStream.toByteArray())
+            count++
+            Log.d("tcp", "making frame $count")
+        }
     }
 
     private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {

@@ -1,6 +1,8 @@
 package com.example.cameraxapp.NetWork
 
 import android.graphics.Bitmap
+import android.graphics.Point
+import android.graphics.PointF
 import android.util.Base64
 import android.util.Log
 import com.google.gson.Gson
@@ -38,6 +40,13 @@ class Tcp () {
             }
             return reply
         }
+    fun sendShootPoint(point: PointF){
+        val json = JsonObject()
+        json.addProperty("type","S")
+        json.addProperty("x",point.x)
+        json.addProperty("y",point.y)
+        sendToServer(json)
+    }
 
     fun sendFrame(jpeg:ByteArray){
         Log.d("tcp", "sending frame " + count.toString() +" to server")
@@ -46,9 +55,9 @@ class Tcp () {
         json.addProperty("type","F")
         json.addProperty("size",jpeg.size)
         json.addProperty("Base64_JPEG", Base64.encodeToString(jpeg, Base64.NO_WRAP))
-        sendMessage(json)
+        sendToServer(json)
     }
-    private fun sendMessage(message: JsonObject?) {
+    private fun sendToServer(message: JsonObject?) {
         val s = message.toString()
         if (mBufferOut != null) {
             //Log.d("test", "Size of sending message: " + s.length)
@@ -66,7 +75,7 @@ class Tcp () {
             val json = JsonObject()
             json.addProperty("type","EGR")
             json.addProperty("name","test player")
-            sendMessage(json)
+            sendToServer(json)
             id = replyOnce.get("id").asInt
             Log.d("tcp","Tcp is initialized")
             Log.d("tcp", "Id is $id")
@@ -88,7 +97,7 @@ class Tcp () {
                 return field
             }
             private set
-        const val SERVER_IP = "192.168.0.105" //server IP address
+        const val SERVER_IP = "192.168.0.104" //server IP address
         const val SERVER_PORT = 1337
     }
 }
