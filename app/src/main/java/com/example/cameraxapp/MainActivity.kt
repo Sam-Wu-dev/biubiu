@@ -35,18 +35,16 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var tcp: Tcp
 
-    private var shootPoint = PointF(0F,0F)
-
     private var deviceWidth = 0
 
     private var deviceHeight = 0
 
-    private var count = 0
+    private lateinit var nowFrame:ByteArray
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        getWindow().setFlags(
+        window.setFlags(
             WindowManager.LayoutParams.FLAG_FULLSCREEN,
-            WindowManager.LayoutParams.FLAG_FULLSCREEN);
+            WindowManager.LayoutParams.FLAG_FULLSCREEN)
         super.onCreate(savedInstanceState)
         viewBinding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(viewBinding.root)
@@ -62,26 +60,26 @@ class MainActivity : AppCompatActivity() {
             ActivityCompat.requestPermissions(
                 this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS)
         }
-        val displaymetrics = DisplayMetrics()
-        windowManager.defaultDisplay.getMetrics(displaymetrics)
-        deviceHeight = displaymetrics.heightPixels
-        deviceWidth = displaymetrics.widthPixels
+        val displayMetrics = DisplayMetrics()
+        windowManager.defaultDisplay.getMetrics(displayMetrics)
+        deviceHeight = displayMetrics.heightPixels
+        deviceWidth = displayMetrics.widthPixels
         setListener()
     }
 
     @SuppressLint("ClickableViewAccessibility")
     private fun setListener(){
-        viewBinding.viewFinder.setOnTouchListener { _, event ->
-            if (event.action == MotionEvent.ACTION_DOWN) {
-                shootPoint.x = event.x/deviceWidth
-                shootPoint.y = event.y/deviceHeight
-            }
-            false
-        }
+//        viewBinding.viewFinder.setOnTouchListener { _, event ->
+//            if (event.action == MotionEvent.ACTION_DOWN) {
+//                shootPoint.x = event.x/deviceWidth
+//                shootPoint.y = event.y/deviceHeight
+//            }
+//            false
+//        }
 
         viewBinding.viewFinder.setOnClickListener {
             Thread{
-                tcp.sendShootPoint(shootPoint)
+                tcp.sendShoot(nowFrame)
             }.start()
         }
     }
@@ -134,10 +132,7 @@ class MainActivity : AppCompatActivity() {
             image.close()
             val outputStream = ByteArrayOutputStream()
             bitmap.compress(Bitmap.CompressFormat.JPEG,80,outputStream)
-            //queue.add(outputStream.toByteArray())
-            tcp.sendFrame(outputStream.toByteArray())
-            count++
-            Log.d("tcp", "making frame $count")
+            nowFrame = outputStream.toByteArray()
         }
     }
 

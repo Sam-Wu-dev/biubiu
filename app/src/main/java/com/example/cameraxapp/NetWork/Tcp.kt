@@ -40,19 +40,12 @@ class Tcp () {
             }
             return reply
         }
-    fun sendShootPoint(point: PointF){
-        val json = JsonObject()
-        json.addProperty("type","S")
-        json.addProperty("x",point.x)
-        json.addProperty("y",point.y)
-        sendToServer(json)
-    }
 
-    fun sendFrame(jpeg:ByteArray){
+    fun sendShoot(jpeg:ByteArray){
         Log.d("tcp", "sending frame " + count.toString() +" to server")
         count++
         val json = JsonObject()
-        json.addProperty("type","F")
+        json.addProperty("type","S")
         json.addProperty("size",jpeg.size)
         json.addProperty("Base64_JPEG", Base64.encodeToString(jpeg, Base64.NO_WRAP))
         sendToServer(json)
@@ -97,7 +90,7 @@ class Tcp () {
                 return field
             }
             private set
-        const val SERVER_IP = "192.168.0.104" //server IP address
+        const val SERVER_IP = "192.168.0.107" //server IP address
         const val SERVER_PORT = 1337
     }
 }
