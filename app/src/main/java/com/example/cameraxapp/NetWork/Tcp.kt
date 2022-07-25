@@ -14,32 +14,66 @@ import java.util.*
 class Tcp () {
     private var mBufferOut: PrintWriter? = null
     private var mBufferIn: BufferedReader? = null
-    var isRunning = false
+    var isListening = false
     private var id = 0
     private var count = 0
-    private val replyOnce: JsonObject
-        get() {
+    private fun processReply(json:JsonObject){
+        when(json.get("type").asString){
+            "GTI"->{
+                id = json.get("id").asInt
+                Log.d("test", id.toString() + "ts")
+            }
+        }
+    }
+    public fun startListening(){
+        if(isListening){
+            return
+        }
+        isListening = true
+        Thread{
             var reply = JsonObject()
             var s: String?
-            while (true) {
+            while (isListening){
                 try {
                     s = mBufferIn!!.readLine()
                     if (s != null) {
                         try {
-                            Log.d("test", "receive from server: $s")
                             reply = stringToJson(s)
-                            Log.d("test", "json to string: $reply")
+                            Log.d("test", "Receive from server: $reply")
+                            processReply(reply)
                         } catch (e: Exception) {
                             e.printStackTrace()
                         }
-                        break
                     }
                 } catch (e: IOException) {
                     e.printStackTrace()
                 }
             }
-            return reply
-        }
+        }.start()
+    }
+//    private val replyOnce: JsonObject
+//        get() {
+//            var reply = JsonObject()
+//            var s: String?
+//            while (true) {
+//                try {
+//                    s = mBufferIn!!.readLine()
+//                    if (s != null) {
+//                        try {
+//                            Log.d("test", "receive from server: $s")
+//                            reply = stringToJson(s)
+//                            Log.d("test", "json to string: $reply")
+//                        } catch (e: Exception) {
+//                            e.printStackTrace()
+//                        }
+//                        break
+//                    }
+//                } catch (e: IOException) {
+//                    e.printStackTrace()
+//                }
+//            }
+//            return reply
+//        }
 
     fun sendShoot(jpeg:ByteArray){
         Log.d("tcp", "sending frame " + count.toString() +" to server")
@@ -69,10 +103,10 @@ class Tcp () {
             json.addProperty("type","EGR")
             json.addProperty("name","test player")
             sendToServer(json)
-            id = replyOnce.get("id").asInt
+            //id = replyOnce.get("id").asInt
             Log.d("tcp","Tcp is initialized")
             Log.d("tcp", "Id is $id")
-            isRunning=true
+            startListening()
         }.start()
     }
 
